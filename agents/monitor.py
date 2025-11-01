@@ -16,3 +16,10 @@ class Monitor:
             if not ok:
                 self.fail[node] += 1; self.errors.append((node, error))
 
+    def summary(self):
+        out = {}
+        with self.lock:
+            for n, v in self.lat.items():
+                s = sorted(v)
+                out[n] = {"calls": len(s), "failures": self.fail[n], "p50_ms": s[len(s) // 2] * 1000, "max_ms": s[-1] * 1000}
+        return out
