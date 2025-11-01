@@ -59,3 +59,12 @@ def correlation(df, a, b):
 TOOLS = {"describe": describe, "groupby_agg": groupby_agg, "top_n": top_n, "time_trend": time_trend, "correlation": correlation}
 
 
+def run_tool(df, name, args):
+    if name not in TOOLS:
+        raise ToolError(f"unknown tool '{name}'; available: {sorted(TOOLS)}")
+    try:
+        return TOOLS[name](df, **args)
+    except TypeError as e:
+        raise ToolError(f"bad arguments for {name}: {e}")
+
+
