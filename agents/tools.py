@@ -37,3 +37,15 @@ def groupby_agg(df, by, value, agg="sum"):
     return df.groupby(by)[value].agg(agg).sort_values(ascending=False).round(2).to_dict()
 
 
+def top_n(df, by, value, n=3, agg="sum"):
+    r = groupby_agg(df, by, value, agg)
+    return dict(list(r.items())[: int(n)])
+
+
+def time_trend(df, date, value, freq="M"):
+    date, value = _col(df, date), _col(df, value)
+    freq = {"M": "ME", "Y": "YE", "Q": "QE"}.get(freq, freq)          # pandas 2.2+ renamed the period-end aliases
+    s = df.set_index(pd.to_datetime(df[date]))[value].resample(freq).sum().round(2)
+    return {str(k.date()): float(v) for k, v in s.items()}
+
+
