@@ -34,3 +34,20 @@ class RulePlanner:
             return [{"tool": "groupby_agg", "args": {"by": dim, "value": measure, "agg": "sum"}}]
         return [{"tool": "describe", "args": {}}]
 
+
+class LLMPlanner:
+    SYSTEM = ("You plan data analysis. Reply with ONLY a JSON list of tool calls "
+              '[{"tool": name, "args": {...}}]. Tools: describe(); groupby_agg(by,value,agg); top_n(by,value,n,agg); '
+              "time_trend(date,value,freq); correlation(a,b). Use only the columns in the schema.")
+
+    def __init__(self, model="claude-sonnet-5"):
+        import anthropic
+        self.client, self.model = anthropic.Anthropic(), model
+
+    def plan(self, question, schema, feedback=None):
+        msg = f"Schema: {json.dumps(schema)}\nQuestion: {question}"
+        if feedback:
+            msg += f"\nYour previous plan failed: {feedback['message']}. Fix it."
+        r = self.client.messages.create(model=self.model, max_tokens=400, system=self.SYSTEM, messages=[{"role": "user", "content": msg}])
+        text = r.content[0].text
+        return json.loads(text[text.index("["): text.rindex("]") + 1])
