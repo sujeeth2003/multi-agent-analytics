@@ -49,3 +49,13 @@ def time_trend(df, date, value, freq="M"):
     return {str(k.date()): float(v) for k, v in s.items()}
 
 
+def correlation(df, a, b):
+    a, b = _col(df, a), _col(df, b)
+    if not (pd.api.types.is_numeric_dtype(df[a]) and pd.api.types.is_numeric_dtype(df[b])):
+        raise ToolError("correlation needs two numeric columns")
+    return {"pearson": round(float(df[a].corr(df[b])), 3), "n": int(df[[a, b]].dropna().shape[0])}
+
+
+TOOLS = {"describe": describe, "groupby_agg": groupby_agg, "top_n": top_n, "time_trend": time_trend, "correlation": correlation}
+
+
