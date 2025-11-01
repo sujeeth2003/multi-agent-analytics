@@ -24,3 +24,16 @@ def _col(df, name):
     return name
 
 
+def describe(df):
+    return {"rows": len(df), "columns": {c: str(t) for c, t in df.dtypes.items()}}
+
+
+def groupby_agg(df, by, value, agg="sum"):
+    by, value = _col(df, by), _col(df, value)
+    if agg not in ("sum", "mean", "count", "max", "min"):
+        raise ToolError(f"unsupported aggregation '{agg}'")
+    if agg != "count" and not pd.api.types.is_numeric_dtype(df[value]):
+        raise ToolError(f"column '{value}' is not numeric")
+    return df.groupby(by)[value].agg(agg).sort_values(ascending=False).round(2).to_dict()
+
+
