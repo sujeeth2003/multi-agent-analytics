@@ -68,3 +68,12 @@ def run_tool(df, name, args):
         raise ToolError(f"bad arguments for {name}: {e}")
 
 
+def sample_sales(n=2000, seed=0):
+    rng = np.random.default_rng(seed)
+    regions = ["North", "South", "East", "West"]; products = ["Widget", "Gadget", "Gizmo", "Doohickey"]
+    df = pd.DataFrame({"order_date": pd.to_datetime("2024-01-01") + pd.to_timedelta(rng.integers(0, 365, n), unit="D"),
+                       "region": rng.choice(regions, n, p=[.35, .25, .25, .15]), "product": rng.choice(products, n),
+                       "units": rng.integers(1, 20, n)})
+    df["unit_price"] = df["product"].map({"Widget": 9.5, "Gadget": 24.0, "Gizmo": 41.0, "Doohickey": 14.0}) * rng.uniform(.9, 1.1, n)
+    df["revenue"] = (df["units"] * df["unit_price"]).round(2)
+    return df
