@@ -33,3 +33,21 @@ class State(TypedDict, total=False):
     status: str
 
 
+def build_graph(df, planner, monitor: Monitor, max_attempts=3):
+    schema = describe(df)
+
+    def timed(name, fn):
+        def wrapper(state):
+            t0 = time.perf_counter()
+            try:
+                out = fn(state)
+                monitor.record(name, time.perf_counter() - t0, ok=True)
+                return out
+            except Exception as e:                       # a crashing node must not take the graph down silently
+                monitor.record(name, time.perf_counter() - t0, ok=False, error=repr(e))
+                a = state.get("attempts", 0) + (1 if name == "planner" else 0)
+                msg = f"{name} crashed: {e!r}"
+                return {"errors": [msg], "results": [], "plan": [], "attempts": a, "status": "replan",
+                        "feedback": {"message": msg, "fix_columns": {}}}
+        return wrapper
+
