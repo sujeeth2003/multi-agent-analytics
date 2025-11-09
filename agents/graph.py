@@ -21,3 +21,15 @@ from .monitor import Monitor
 from .tools import ToolError, describe, run_tool
 
 
+class State(TypedDict, total=False):
+    question: str
+    schema: dict
+    plan: list
+    results: list
+    errors: list
+    feedback: dict
+    attempts: int
+    report: str
+    status: str
+
+
