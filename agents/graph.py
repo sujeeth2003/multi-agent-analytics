@@ -51,3 +51,27 @@ def build_graph(df, planner, monitor: Monitor, max_attempts=3):
                         "feedback": {"message": msg, "fix_columns": {}}}
         return wrapper
 
+    def plan_node(state):
+        plan = planner.plan(state["question"], schema, state.get("feedback"))
+        return {"plan": plan, "attempts": state.get("attempts", 0) + 1, "errors": [], "results": []}
+
+    def exec_node(state):
+        results, errors = [], []
+        for step in state["plan"]:
+            try:
+                results.append({"tool": step["tool"], "args": step["args"], "output": run_tool(df, step["tool"], step["args"])})
+            except (ToolError, KeyError) as e:
+                errors.append(f"{step.get('tool')}: {e}")
+        return {"results": results, "errors": errors}
+
+    def critic_node(state):
+        if state.get("errors"):
+            fix = {}
+            for e in state["errors"]:                    # parse "unknown column 'x' (did you mean 'y'?)" into a correction map
+                if "unknown column '" in e and "did you mean '" in e:
+                    fix[e.split("unknown column '")[1].split("'")[0]] = e.split("did you mean '")[1].split("'")[0]
+            return {"feedback": {"message": "; ".join(state["errors"]), "fix_columns": fix}, "status": "replan"}
+        if not state.get("results") or all(not r["output"] for r in state["results"]):
+            return {"feedback": {"message": "the plan produced no data", "fix_columns": {}}, "status": "replan"}
+        return {"status": "ok"}
+
