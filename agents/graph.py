@@ -75,3 +75,26 @@ def build_graph(df, planner, monitor: Monitor, max_attempts=3):
             return {"feedback": {"message": "the plan produced no data", "fix_columns": {}}, "status": "replan"}
         return {"status": "ok"}
 
+    def route(state):
+        if state["status"] == "ok":
+            return "reporter"
+        return "reporter" if state["attempts"] >= max_attempts else "planner"
+
+    def report_node(state):
+        if state["status"] != "ok":
+            return {"report": f"I could not answer after {state['attempts']} attempts. Last problem: {state.get('feedback', {}).get('message', 'unknown')}"}
+        lines = []
+        for r in state["results"]:
+            out = r["output"]
+            if r["tool"] in ("groupby_agg", "top_n"):
+                best = next(iter(out.items()))
+                lines.append(f"{r['args']['by']} ranking by {r['args']['value']}: " + ", ".join(f"{k}={v:,.0f}" for k, v in out.items()) + f". Highest: {best[0]}.")
+            elif r["tool"] == "time_trend":
+                vals = list(out.values())
+                lines.append(f"{r['args']['value']} by month ranges {min(vals):,.0f}-{max(vals):,.0f}; first {vals[0]:,.0f}, last {vals[-1]:,.0f}.")
+            elif r["tool"] == "correlation":
+                lines.append(f"correlation({r['args']['a']}, {r['args']['b']}) = {out['pearson']} over {out['n']} rows.")
+            else:
+                lines.append(f"dataset: {out['rows']} rows, columns {list(out['columns'])}.")
+        return {"report": " ".join(lines)}
+
