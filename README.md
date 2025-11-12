@@ -14,3 +14,10 @@ START -> planner -> executor -> critic --ok--> reporter -> END
 | critic | checks the results and, when something failed, tells the planner exactly what (e.g. "unknown column `sales`, did you mean `revenue`?") |
 | reporter | writes the answer from real results, or reports the failure and why |
 
+## What I learned building it
+Agents fail in boring ways, so build the failure handling and monitoring first. Running the demo exposed four real bugs, all fixed and now covered by tests:
+1. **Wrong column names** (`sales` vs `revenue`): fixed by a critic feedback loop plus a small business glossary.
+2. **A library change** (pandas renamed the `"M"` month alias to `"ME"`): the error came back as data, the planner retried the same call, and only the monitor showed the executor failing repeatedly.
+3. **A silent wrong answer:** asked for "profit", the naive planner quietly substituted "revenue" and answered confidently. Silent substitution is worse than failure; now unknown measures fail loudly, and the system says it cannot answer.
+4. **A crash path that dropped state** (a broken planner left the graph without an attempt counter): every node is wrapped so a crash becomes a `replan` with the error recorded.
+
