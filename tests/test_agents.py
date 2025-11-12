@@ -24,3 +24,19 @@ class ToolTests(unittest.TestCase):
         with self.assertRaises(ToolError): run_tool(self.df, "correlation", {"a": "region", "b": "units"})
 
 
+class GraphTests(unittest.TestCase):
+    def setUp(self):
+        self.df, self.mon = sample_sales(800, seed=2), Monitor()
+        self.graph = build_graph(self.df, RulePlanner(), self.mon, max_attempts=3)
+
+    def test_direct_success_takes_one_attempt(self):
+        r = self.graph.invoke({"question": "Which region has the highest revenue?"})
+        self.assertEqual((r["status"], r["attempts"]), ("ok", 1))
+        best = self.df.groupby("region").revenue.sum().idxmax()
+        self.assertIn(f"Highest: {best}", r["report"])
+
+    def test_critic_repairs_wrong_column_via_replan(self):
+        r = self.graph.invoke({"question": "Which region has the highest sales?"})       # 'sales' is not a column
+        self.assertEqual(r["status"], "ok"); self.assertEqual(r["attempts"], 2)
+        self.assertIn("revenue", r["report"])
+
