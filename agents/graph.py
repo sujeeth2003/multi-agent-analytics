@@ -98,3 +98,12 @@ def build_graph(df, planner, monitor: Monitor, max_attempts=3):
                 lines.append(f"dataset: {out['rows']} rows, columns {list(out['columns'])}.")
         return {"report": " ".join(lines)}
 
+    g = StateGraph(State)
+    g.add_node("planner", timed("planner", plan_node))
+    g.add_node("executor", timed("executor", exec_node))
+    g.add_node("critic", timed("critic", critic_node))
+    g.add_node("reporter", timed("reporter", report_node))
+    g.add_edge(START, "planner"); g.add_edge("planner", "executor"); g.add_edge("executor", "critic")
+    g.add_conditional_edges("critic", route, {"planner": "planner", "reporter": "reporter"})
+    g.add_edge("reporter", END)
+    return g.compile()
