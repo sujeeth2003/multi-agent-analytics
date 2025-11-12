@@ -40,3 +40,25 @@ class GraphTests(unittest.TestCase):
         self.assertEqual(r["status"], "ok"); self.assertEqual(r["attempts"], 2)
         self.assertIn("revenue", r["report"])
 
+    def test_unanswerable_question_fails_honestly_and_boundedly(self):
+        r = self.graph.invoke({"question": "Which region has the highest profit?"})
+        self.assertEqual(r["attempts"], 3); self.assertEqual(r["status"], "replan")
+        self.assertIn("could not answer", r["report"])
+
+    def test_planner_crash_is_contained_and_monitored(self):
+        class Broken:
+            def plan(self, *a, **k): raise RuntimeError("model returned garbage")
+        mon = Monitor(); g = build_graph(self.df, Broken(), mon, max_attempts=2)
+        r = g.invoke({"question": "anything"})
+        self.assertIn("could not answer", r["report"]); self.assertGreaterEqual(mon.fail["planner"], 1)
+
+    def test_concurrent_runs_are_isolated(self):
+        qs = ["Which region has the highest revenue?", "Which product has the highest units?"] * 8
+        with ThreadPoolExecutor(8) as ex: out = list(ex.map(lambda q: self.graph.invoke({"question": q}), qs))
+        self.assertTrue(all(o["status"] == "ok" for o in out))
+        self.assertEqual(out[0]["report"], out[2]["report"])
+        self.assertEqual(self.mon.summary()["reporter"]["calls"], 16)
+
+
+if __name__ == "__main__":
+    unittest.main()
