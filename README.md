@@ -21,3 +21,22 @@ Agents fail in boring ways, so build the failure handling and monitoring first. 
 3. **A silent wrong answer:** asked for "profit", the naive planner quietly substituted "revenue" and answered confidently. Silent substitution is worse than failure; now unknown measures fail loudly, and the system says it cannot answer.
 4. **A crash path that dropped state** (a broken planner left the graph without an attempt counter): every node is wrapped so a crash becomes a `replan` with the error recorded.
 
+## Run
+```bash
+pip install langgraph pandas numpy
+python -m unittest discover -s tests     # 7 tests
+python run_demo.py                       # 5 questions, concurrent, with monitoring; the last one is unanswerable on purpose
+ANTHROPIC_API_KEY=... python run_demo.py --llm      # swap the planner for Claude (pip install anthropic)
+```
+Demo output (offline planner):
+```
+Q: Which region has the highest sales?     attempts=2 status=ok    (critic repaired 'sales' -> 'revenue')
+Q: What is the monthly revenue trend?      attempts=1 status=ok
+Q: Which region has the highest profit?    attempts=3 status=replan -> "I could not answer after 3 attempts..."
+planner calls=8 failures=0 | executor calls=8 p50=7 ms | critic calls=8 | reporter calls=5
+```
+
+## Honest scope
+- The default planner is **rule-based** so the project runs offline and the graph behaviour is deterministic and testable; it is intentionally naive so the critic has real mistakes to fix. The LLM planner (`--llm`) plugs into the same graph but **was not run here** (no API key).
+- Its fuzzy suggestion for "profit" is `product` (string similarity); the loop retries with it, fails on the type check, and gives up honestly. A production critic would also check that a suggested column is semantically plausible.
+- Concurrency is threads, one graph invocation per question, verified isolated by a test. Ray, Redis and a FastAPI/Docker wrapper (parts of the original plan) are **not built**; the graph is a plain callable, so wrapping it in FastAPI is a few lines.
