@@ -30,6 +30,9 @@ def create_app(df=None, planner=None, cache: Cache = None) -> FastAPI:
 
     @app.post("/ask")
     def ask(q: Question):
+        hit = cache.get(q.question)
+        if hit:
+            return {**hit, "cached": True}
         r = graph.invoke({"question": q.question})
         return {"answer": r["report"], "status": r["status"], "attempts": r["attempts"]}
 
