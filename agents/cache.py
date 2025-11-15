@@ -22,3 +22,18 @@ class Cache:
         norm = " ".join(question.lower().split())
         return f"answer:{self.data_key}:{hashlib.sha256(norm.encode()).hexdigest()[:16]}"
 
+    def get(self, question):
+        raw = self.client.get(self._key(question)) if self.client else self.local.get(self._key(question))
+        if raw is None:
+            self.misses += 1
+            return None
+        self.hits += 1
+        return json.loads(raw)
+
+    def put(self, question, answer: dict):
+        raw = json.dumps(answer)
+        if self.client:
+            self.client.set(self._key(question), raw, ex=self.ttl)     # entries expire on their own
+        else:
+            self.local[self._key(question)] = raw
+
