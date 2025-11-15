@@ -8,3 +8,17 @@ import json
 import os
 
 
+def fingerprint(df) -> str:
+    return hashlib.sha256(f"{list(df.columns)}|{len(df)}|{df.iloc[:50].to_csv()}".encode()).hexdigest()[:12]
+
+
+class Cache:
+    def __init__(self, client=None, data_key="", ttl=3600):
+        self.client, self.data_key, self.ttl = client, data_key, ttl
+        self.local = {}
+        self.hits = self.misses = 0
+
+    def _key(self, question):
+        norm = " ".join(question.lower().split())
+        return f"answer:{self.data_key}:{hashlib.sha256(norm.encode()).hexdigest()[:16]}"
+
