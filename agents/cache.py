@@ -37,3 +37,12 @@ class Cache:
         else:
             self.local[self._key(question)] = raw
 
+
+def cache_from_env(df):
+    """REDIS_URL=redis://localhost:6379/0 turns Redis on; otherwise an in-process dict."""
+    url = os.environ.get("REDIS_URL")
+    client = None
+    if url:
+        import redis
+        client = redis.Redis.from_url(url, decode_responses=True)
+    return Cache(client, data_key=fingerprint(df))
