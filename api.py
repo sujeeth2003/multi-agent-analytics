@@ -21,7 +21,7 @@ class Question(BaseModel):
     question: str
 
 
-def create_app(df=None, planner=None) -> FastAPI:
+def create_app(df=None, planner=None, cache: Cache = None) -> FastAPI:
     df = sample_sales() if df is None else df
     monitor = Monitor()
     graph = build_graph(df, planner or RulePlanner(), monitor)
