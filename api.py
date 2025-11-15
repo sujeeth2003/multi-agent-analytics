@@ -3,7 +3,7 @@
     uvicorn api:app --port 8000
     curl -X POST localhost:8000/ask -H "content-type: application/json" -d '{"question": "Which region has the highest revenue?"}'
 
-    POST /ask      {"question": "..."}  ->  {"answer", "status", "attempts"}
+    POST /ask      {"question": "..."}  ->  {"answer", "status", "attempts", "cached"}
     GET  /health   -> {"ok": true}
     GET  /metrics  -> per-agent call counts, failures and latency (the Monitor from agents/monitor.py)
 """
