@@ -10,6 +10,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+from agents.cache import Cache, cache_from_env
 from agents.graph import build_graph
 from agents.llm import RulePlanner
 from agents.monitor import Monitor
