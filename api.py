@@ -23,6 +23,7 @@ class Question(BaseModel):
 
 def create_app(df=None, planner=None, cache: Cache = None) -> FastAPI:
     df = sample_sales() if df is None else df
+    cache = cache or cache_from_env(df)          # Redis when REDIS_URL is set, otherwise an in-process dict
     monitor = Monitor()
     graph = build_graph(df, planner or RulePlanner(), monitor)
     app = FastAPI(title="Multi-agent analytics")

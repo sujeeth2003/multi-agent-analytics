@@ -39,5 +39,21 @@ class ApiTests(unittest.TestCase):
         self.assertGreaterEqual(self.client.get("/metrics").json()["planner"]["calls"], 1)
 
 
+class CacheTests(unittest.TestCase):
+    def setUp(self):
+        self.df = sample_sales(600, seed=3)
+        self.redis = fakeredis.FakeRedis(decode_responses=True)     # a real Redis server in memory
+        self.client = TestClient(create_app(self.df, cache=Cache(self.redis, fingerprint(self.df))))
+        self.q = {"question": "Which region has the highest revenue?"}
+
+    def test_second_ask_is_served_from_redis_without_running_the_agents(self):
+        first = self.client.post("/ask", json=self.q).json()
+        calls = self.client.get("/metrics").json()["planner"]["calls"]
+        second = self.client.post("/ask", json=self.q).json()
+        self.assertFalse(first["cached"]); self.assertTrue(second["cached"])
+        self.assertEqual(first["answer"], second["answer"])
+        self.assertEqual(self.client.get("/metrics").json()["planner"]["calls"], calls)   # the planner did not run again
+        self.assertEqual(len(self.redis.keys("answer:*")), 1)
+
 if __name__ == "__main__":
     unittest.main()
