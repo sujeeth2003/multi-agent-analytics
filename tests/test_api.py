@@ -23,3 +23,18 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(r["status"], "ok")
         self.assertIn(f"Highest: {best}", r["answer"])
 
+    def test_unanswerable_question_returns_an_honest_failure_not_a_500(self):
+        resp = self.client.post("/ask", json={"question": "Which region has the highest profit?"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("could not answer", resp.json()["answer"])
+
+    def test_bad_request_body_is_rejected(self):
+        self.assertEqual(self.client.post("/ask", json={"nope": 1}).status_code, 422)
+
+    def test_metrics_reflect_calls(self):
+        self.client.post("/ask", json={"question": "Which region has the highest revenue?"})
+        self.assertGreaterEqual(self.client.get("/metrics").json()["planner"]["calls"], 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

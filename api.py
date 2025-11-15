@@ -31,3 +31,15 @@ def create_app(df=None, planner=None) -> FastAPI:
         r = graph.invoke({"question": q.question})
         return {"answer": r["report"], "status": r["status"], "attempts": r["attempts"]}
 
+    @app.get("/health")
+    def health():
+        return {"ok": True}
+
+    @app.get("/metrics")
+    def metrics():
+        return monitor.summary()
+
+    return app
+
+
+app = create_app()
