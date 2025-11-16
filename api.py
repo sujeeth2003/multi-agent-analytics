@@ -45,7 +45,7 @@ def create_app(df=None, planner=None, cache: Cache = None) -> FastAPI:
 
     @app.get("/metrics")
     def metrics():
-        return monitor.summary()
+        return {**monitor.summary(), "cache": {"hits": cache.hits, "misses": cache.misses}}
 
     return app
 
