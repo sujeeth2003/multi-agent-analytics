@@ -34,7 +34,10 @@ def create_app(df=None, planner=None, cache: Cache = None) -> FastAPI:
         if hit:
             return {**hit, "cached": True}
         r = graph.invoke({"question": q.question})
-        return {"answer": r["report"], "status": r["status"], "attempts": r["attempts"]}
+        out = {"answer": r["report"], "status": r["status"], "attempts": r["attempts"]}
+        if r["status"] == "ok":                  # only good answers are cached: a failure may be temporary
+            cache.put(q.question, out)
+        return {**out, "cached": False}
 
     @app.get("/health")
     def health():

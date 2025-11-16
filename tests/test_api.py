@@ -55,5 +55,22 @@ class CacheTests(unittest.TestCase):
         self.assertEqual(self.client.get("/metrics").json()["planner"]["calls"], calls)   # the planner did not run again
         self.assertEqual(len(self.redis.keys("answer:*")), 1)
 
+    def test_wording_differences_in_case_and_spacing_share_an_entry(self):
+        self.client.post("/ask", json=self.q)
+        again = self.client.post("/ask", json={"question": "  WHICH region   has the highest REVENUE? "}).json()
+        self.assertTrue(again["cached"])
+
+    def test_failures_are_not_cached(self):
+        bad = {"question": "Which region has the highest profit?"}
+        self.client.post("/ask", json=bad)
+        self.assertFalse(self.client.post("/ask", json=bad).json()["cached"])
+
+    def test_different_data_does_not_reuse_answers(self):
+        self.client.post("/ask", json=self.q)
+        other = sample_sales(600, seed=99)
+        c2 = TestClient(create_app(other, cache=Cache(self.redis, fingerprint(other))))
+        self.assertFalse(c2.post("/ask", json=self.q).json()["cached"])
+
+
 if __name__ == "__main__":
     unittest.main()
