@@ -12,3 +12,16 @@ from .monitor import Monitor
 
 
 @ray.remote
+class Worker:
+    def __init__(self, df):
+        self.monitor = Monitor()
+        self.graph = build_graph(df, RulePlanner(), self.monitor)      # built once per process, reused for every question
+
+    def answer(self, question):
+        r = self.graph.invoke({"question": question})
+        return {"question": question, "answer": r["report"], "status": r["status"], "attempts": r["attempts"]}
+
+    def summary(self):
+        return self.monitor.summary()
+
+
