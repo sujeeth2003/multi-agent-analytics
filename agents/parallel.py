@@ -25,3 +25,18 @@ class Worker:
         return self.monitor.summary()
 
 
+def answer_many(df, questions, workers=4):
+    """Returns (answers in the same order as `questions`, monitoring summed over all workers)."""
+    ray.init(ignore_reinit_error=True, include_dashboard=False, log_to_driver=False)
+    try:
+        pool = [Worker.remote(df) for _ in range(workers)]
+        futures = [pool[i % workers].answer.remote(q) for i, q in enumerate(questions)]   # round-robin
+        answers = ray.get(futures)
+        merged = {}
+        for s in ray.get([w.summary.remote() for w in pool]):
+            for node, v in s.items():
+                m = merged.setdefault(node, {"calls": 0, "failures": 0})
+                m["calls"] += v["calls"]; m["failures"] += v["failures"]
+        return answers, merged
+    finally:
+        ray.shutdown()
