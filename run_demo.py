@@ -22,7 +22,7 @@ QUESTIONS = [
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--llm", action="store_true"); a = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument("--llm", action="store_true"); ap.add_argument("--ray", action="store_true"); a = ap.parse_args()
     df, mon = sample_sales(), Monitor()
     graph = build_graph(df, LLMPlanner() if a.llm else RulePlanner(), mon)
     with ThreadPoolExecutor(4) as ex:
