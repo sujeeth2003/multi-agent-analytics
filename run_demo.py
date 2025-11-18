@@ -1,6 +1,7 @@
 """Run a batch of questions through the agent graph concurrently and print answers plus monitoring.
 
-    python run_demo.py                 # offline rule-based planner
+    python run_demo.py                 # offline rule-based planner, threads
+    python run_demo.py --ray           # same questions, spread over Ray worker processes
     ANTHROPIC_API_KEY=... python run_demo.py --llm
 """
 import argparse
