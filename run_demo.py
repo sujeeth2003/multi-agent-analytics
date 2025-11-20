@@ -24,6 +24,13 @@ QUESTIONS = [
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--llm", action="store_true"); ap.add_argument("--ray", action="store_true"); a = ap.parse_args()
     df, mon = sample_sales(), Monitor()
+    if a.ray:
+        from agents.parallel import answer_many
+        answers, summary = answer_many(df, QUESTIONS)
+        for r in answers:
+            print(f"\nQ: {r['question']}\n   attempts={r['attempts']} status={r['status']}\n   A: {r['answer']}")
+        print("\nmonitoring (summed over Ray workers):", summary)
+        return
     graph = build_graph(df, LLMPlanner() if a.llm else RulePlanner(), mon)
     with ThreadPoolExecutor(4) as ex:
         results = list(ex.map(lambda q: graph.invoke({"question": q}), QUESTIONS))
