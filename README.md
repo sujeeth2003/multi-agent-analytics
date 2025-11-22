@@ -21,6 +21,15 @@ Agents fail in boring ways, so build the failure handling and monitoring first. 
 3. **A silent wrong answer:** asked for "profit", the naive planner quietly substituted "revenue" and answered confidently. Silent substitution is worse than failure; now unknown measures fail loudly, and the system says it cannot answer.
 4. **A crash path that dropped state** (a broken planner left the graph without an attempt counter): every node is wrapped so a crash becomes a `replan` with the error recorded.
 
+## The four pieces around the graph
+Each one is small and does one job; each was added as its own commit.
+| Tool | Why it is here | Where |
+|---|---|---|
+| **FastAPI** | turns the graph into a service: `POST /ask`, `GET /health`, `GET /metrics` | `api.py` |
+| **Redis** | shared answer cache: asking the same question again skips all four agents. Only successful answers are cached, the key includes a fingerprint of the data, and entries expire after an hour | `agents/cache.py` |
+| **Ray** | runs many questions in parallel in separate worker processes (each builds the graph once), instead of threads sharing one GIL | `agents/parallel.py` |
+| **Docker** | `docker compose up` starts the API and a Redis together | `Dockerfile`, `docker-compose.yml` |
+
 ## Run
 ```bash
 pip install langgraph pandas numpy
