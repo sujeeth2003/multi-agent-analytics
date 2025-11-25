@@ -51,4 +51,5 @@ planner calls=8 failures=0 | executor calls=8 p50=7 ms | critic calls=8 | report
 ## Honest scope
 - The default planner is **rule-based** so the project runs offline and the graph behaviour is deterministic and testable; it is intentionally naive so the critic has real mistakes to fix. The LLM planner (`--llm`) plugs into the same graph but **was not run here** (no API key).
 - Its fuzzy suggestion for "profit" is `product` (string similarity); the loop retries with it, fails on the type check, and gives up honestly. A production critic would also check that a suggested column is semantically plausible.
-- Concurrency is threads, one graph invocation per question, verified isolated by a test. Ray, Redis and a FastAPI/Docker wrapper (parts of the original plan) are **not built**; the graph is a plain callable, so wrapping it in FastAPI is a few lines.
+- The Redis tests run against `fakeredis` (an in-memory Redis-compatible server), the API tests use FastAPI's test client, and the Ray test starts a real local Ray. **The Dockerfile and compose file were written but not built** (no Docker on the machine I used), and the code was not run against a real Redis server.
+- Ray here parallelises independent questions; it does not split one question across machines.
