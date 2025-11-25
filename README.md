@@ -33,7 +33,7 @@ Each one is small and does one job; each was added as its own commit.
 ## Run
 ```bash
 pip install -r requirements.txt
-python -m unittest discover -s tests     # 16 tests (graph, API, Redis cache, Ray)
+python -m unittest discover -s tests     # 17 tests (graph, API, Redis cache, Ray)
 python run_demo.py                       # 5 questions, threads, with monitoring; the last one is unanswerable on purpose
 python run_demo.py --ray                 # the same questions over Ray worker processes
 uvicorn api:app --port 8000              # the API (set REDIS_URL=redis://localhost:6379/0 to cache in Redis)
