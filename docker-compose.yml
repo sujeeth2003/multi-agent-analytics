@@ -1,0 +1,10 @@
+# docker compose up --build      then      curl localhost:8000/health
+services:
+  redis:
+    image: redis:7-alpine
+  api:
+    build: .
+    ports: ["8000:8000"]
+    environment:
+      REDIS_URL: redis://redis:6379/0     # switches the answer cache from an in-process dict to Redis
+    depends_on: [redis]

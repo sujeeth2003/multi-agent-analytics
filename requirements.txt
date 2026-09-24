@@ -1,0 +1,7 @@
+langgraph
+pandas
+numpy
+fastapi
+uvicorn
+redis
+ray
