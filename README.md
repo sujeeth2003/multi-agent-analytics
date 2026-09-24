@@ -21,11 +21,23 @@ Agents fail in boring ways, so build the failure handling and monitoring first. 
 3. **A silent wrong answer:** asked for "profit", the naive planner quietly substituted "revenue" and answered confidently. Silent substitution is worse than failure; now unknown measures fail loudly, and the system says it cannot answer.
 4. **A crash path that dropped state** (a broken planner left the graph without an attempt counter): every node is wrapped so a crash becomes a `replan` with the error recorded.
 
+## The four pieces around the graph
+Each one is small and does one job; each was added as its own commit.
+| Tool | Why it is here | Where |
+|---|---|---|
+| **FastAPI** | turns the graph into a service: `POST /ask`, `GET /health`, `GET /metrics` | `api.py` |
+| **Redis** | shared answer cache: asking the same question again skips all four agents. Only successful answers are cached, the key includes a fingerprint of the data, and entries expire after an hour | `agents/cache.py` |
+| **Ray** | runs many questions in parallel in separate worker processes (each builds the graph once), instead of threads sharing one GIL | `agents/parallel.py` |
+| **Docker** | `docker compose up` starts the API and a Redis together | `Dockerfile`, `docker-compose.yml` |
+
 ## Run
 ```bash
-pip install langgraph pandas numpy
-python -m unittest discover -s tests     # 7 tests
-python run_demo.py                       # 5 questions, concurrent, with monitoring; the last one is unanswerable on purpose
+pip install -r requirements.txt
+python -m unittest discover -s tests     # 16 tests (graph, API, Redis cache, Ray)
+python run_demo.py                       # 5 questions, threads, with monitoring; the last one is unanswerable on purpose
+python run_demo.py --ray                 # the same questions over Ray worker processes
+uvicorn api:app --port 8000              # the API (set REDIS_URL=redis://localhost:6379/0 to cache in Redis)
+docker compose up --build                # API + Redis in containers
 ANTHROPIC_API_KEY=... python run_demo.py --llm      # swap the planner for Claude (pip install anthropic)
 ```
 Demo output (offline planner):
@@ -39,4 +51,5 @@ planner calls=8 failures=0 | executor calls=8 p50=7 ms | critic calls=8 | report
 ## Honest scope
 - The default planner is **rule-based** so the project runs offline and the graph behaviour is deterministic and testable; it is intentionally naive so the critic has real mistakes to fix. The LLM planner (`--llm`) plugs into the same graph but **was not run here** (no API key).
 - Its fuzzy suggestion for "profit" is `product` (string similarity); the loop retries with it, fails on the type check, and gives up honestly. A production critic would also check that a suggested column is semantically plausible.
-- Concurrency is threads, one graph invocation per question, verified isolated by a test. Ray, Redis and a FastAPI/Docker wrapper (parts of the original plan) are **not built**; the graph is a plain callable, so wrapping it in FastAPI is a few lines.
+- The Redis tests run against `fakeredis` (an in-memory Redis-compatible server), the API tests use FastAPI's test client, and the Ray test starts a real local Ray. **The Dockerfile and compose file were written but not built** (no Docker on the machine I used), and the code was not run against a real Redis server.
+- Ray here parallelises independent questions; it does not split one question across machines.
